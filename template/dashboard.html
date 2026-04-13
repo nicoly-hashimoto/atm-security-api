@@ -1,0 +1,4198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATM Security - Cybersecurity Dark Ops Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --dark-bg: #000000;
+      --panel-bg: #0a0a0a;
+      --border-color: #1a1a2e;
+      --accent-green: #00ff41;
+      --accent-red: #ff1744;
+      --accent-cyan: #00ffff;
+      --accent-yellow: #ffeb3b;
+      --accent-orange: #ff6f00;
+      --accent-purple: #da70d6;
+      --text-primary: #ffffff;
+      --text-secondary: #888888;
+      --critical: #ff1744;
+      --high: #ff6f00;
+      --medium: #ffb300;
+      --low: #1de9b6;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #000000 0%, #0a0a0f 50%, #0d0d1a 100%);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Scanlines effect */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.4),
+        rgba(0, 0, 0, 0.4) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+      z-index: 1;
+      animation: scanlines 8s linear infinite;
+    }
+
+    @keyframes scanlines {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(10px); }
+    }
+
+    /* Background glow */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border: 2px solid var(--accent-cyan);
+      border-image: linear-gradient(90deg, var(--accent-cyan), var(--accent-green), var(--accent-cyan)) 1;
+      background: linear-gradient(90deg, rgba(0, 255, 255, 0.05), rgba(0, 255, 65, 0.05));
+      margin-bottom: 20px;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 65, 0.1);
+      animation: headerGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes headerGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 65, 0.1); }
+      50% { box-shadow: 0 0 30px rgba(0, 255, 65, 0.5), inset 0 0 30px rgba(0, 255, 255, 0.2); }
+    }
+
+    .header h1 {
+      font-size: 24px;
+      color: var(--accent-cyan);
+      text-shadow: 0 0 10px var(--accent-cyan), 0 0 20px var(--accent-green);
+      letter-spacing: 3px;
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 40px;
+      font-size: 14px;
+    }
+
+    .stat-item {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+    }
+
+    .stat-value {
+      color: var(--accent-green);
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .stat-value.warning {
+      color: var(--accent-yellow);
+    }
+
+    .stat-value.critical {
+      color: var(--accent-red);
+    }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .dashboard-grid-large {
+      grid-column: span 2;
+    }
+
+    /* Panel Styles */
+    .panel {
+      background: linear-gradient(135deg, rgba(10, 10, 10, 0.9), rgba(13, 13, 26, 0.9));
+      border: 2px solid;
+      border-image: linear-gradient(135deg, var(--accent-cyan), var(--accent-green)) 1;
+      padding: 20px;
+      box-shadow: 0 0 30px rgba(0, 255, 65, 0.2), inset 0 0 30px rgba(0, 255, 255, 0.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green), transparent);
+      animation: topBorderGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes topBorderGlow {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    .panel-title {
+      font-size: 14px;
+      color: var(--accent-cyan);
+      text-shadow: 0 0 10px var(--accent-cyan);
+      margin-bottom: 15px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-title::after {
+      content: '■';
+      color: var(--accent-red);
+      font-size: 10px;
+    }
+
+    /* Metric Boxes */
+    .metric-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px;
+      background: linear-gradient(135deg, rgba(0, 255, 65, 0.05), rgba(0, 255, 255, 0.02));
+      border: 1px solid rgba(0, 255, 65, 0.3);
+      margin-bottom: 10px;
+      box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+
+    .metric-value {
+      font-size: 36px;
+      font-weight: bold;
+      color: var(--accent-green);
+      text-shadow: 0 0 20px var(--accent-green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { text-shadow: 0 0 20px var(--accent-green); }
+      50% { text-shadow: 0 0 40px var(--accent-green); }
+    }
+
+    .metric-value.critical {
+      color: var(--accent-red);
+      text-shadow: 0 0 20px var(--accent-red);
+    }
+
+    .metric-value.warning {
+      color: var(--accent-yellow);
+      text-shadow: 0 0 20px var(--accent-yellow);
+    }
+
+    /* Chart Container */
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+      margin-bottom: 15px;
+    }
+
+    /* Alert List */
+    .alert-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .alert-item {
+      padding: 10px;
+      border-left: 3px solid;
+      background: rgba(0, 255, 65, 0.03);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alert-item.critical {
+      border-left-color: var(--critical);
+      background: rgba(255, 23, 68, 0.1);
+    }
+
+    .alert-item.high {
+      border-left-color: var(--high);
+      background: rgba(255, 111, 0, 0.1);
+    }
+
+    .alert-item.medium {
+      border-left-color: var(--medium);
+      background: rgba(255, 179, 0, 0.1);
+    }
+
+    .alert-item.low {
+      border-left-color: var(--low);
+      background: rgba(29, 233, 182, 0.1);
+    }
+
+    .alert-message {
+      flex: 1;
+      color: var(--text-primary);
+    }
+
+    .alert-time {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+
+    /* Auth Section */
+    .auth-section {
+      position: fixed;
+      right: 20px;
+      top: 20px;
+      background: linear-gradient(135deg, rgba(10, 10, 10, 0.95), rgba(13, 13, 26, 0.95));
+      border: 2px solid var(--accent-cyan);
+      padding: 20px;
+      width: 300px;
+      max-height: 500px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+      transition: all 0.3s ease-in-out;
+    }
+
+    .auth-section.minimized {
+      width: 60px;
+      max-height: 60px;
+      padding: 10px;
+      overflow: hidden;
+    }
+
+    .auth-section.minimized .auth-content {
+      display: none;
+    }
+
+    .minimize-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+      border: 1px solid var(--accent-green);
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+      transition: all 0.3s;
+    }
+
+    .minimize-btn:hover {
+      box-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
+    }
+
+    .auth-section.minimized .minimize-btn {
+      position: relative;
+      top: auto;
+      right: auto;
+      width: 100%;
+      height: 40px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      color: var(--accent-cyan);
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      background: rgba(0, 255, 65, 0.05);
+      border: 1px solid var(--accent-cyan);
+      color: var(--text-primary);
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.2);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent-green);
+      box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.3), 0 0 20px rgba(0, 255, 65, 0.2);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+      border: none;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      box-shadow: 0 0 30px rgba(0, 255, 65, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.2);
+      transform: scale(1.02);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .error {
+      color: var(--critical);
+      font-size: 12px;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .success {
+      color: var(--accent-green);
+      font-size: 12px;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    /* Status Indicator */
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 5px;
+      animation: statusPulse 2s ease-in-out infinite;
+    }
+
+    .status-indicator.online {
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+    }
+
+    .status-indicator.offline {
+      background: var(--accent-red);
+      box-shadow: 0 0 10px var(--accent-red);
+    }
+
+    .status-indicator.warning {
+      background: var(--accent-yellow);
+      box-shadow: 0 0 10px var(--accent-yellow);
+    }
+
+    @keyframes statusPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 255, 65, 0.05);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--accent-cyan), var(--accent-green));
+      box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+    }
+
+    /* Tab Navigation */
+    .tab-container {
+      margin-top: 30px;
+      border-top: 2px solid var(--accent-cyan);
+      padding-top: 20px;
+    }
+
+    .tab-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      background: transparent;
+      border: 2px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.3s;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    }
+
+    .tab-btn:hover {
+      background: rgba(0, 255, 255, 0.1);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+      color: #000;
+      box-shadow: 0 0 30px rgba(0, 255, 65, 0.6);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Report Styles */
+    .report-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .report-section {
+      background: linear-gradient(135deg, rgba(10, 10, 10, 0.9), rgba(13, 13, 26, 0.9));
+      border: 2px solid var(--accent-green);
+      padding: 20px;
+      box-shadow: 0 0 30px rgba(0, 255, 65, 0.2);
+    }
+
+    .report-title {
+      color: var(--accent-green);
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      text-shadow: 0 0 10px var(--accent-green);
+      letter-spacing: 2px;
+    }
+
+    .report-item {
+      padding: 10px;
+      margin-bottom: 10px;
+      background: rgba(0, 255, 65, 0.05);
+      border-left: 3px solid var(--accent-cyan);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .report-item.high {
+      border-left-color: var(--critical);
+      background: rgba(255, 23, 68, 0.1);
+    }
+
+    .report-item.medium {
+      border-left-color: var(--accent-yellow);
+      background: rgba(255, 179, 0, 0.1);
+    }
+
+    .report-recommendation {
+      padding: 15px;
+      background: linear-gradient(135deg, rgba(0, 255, 65, 0.1), rgba(0, 255, 255, 0.05));
+      border: 1px solid var(--accent-cyan);
+      margin-bottom: 10px;
+      border-radius: 3px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .recommendation-level {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--accent-green);
+      color: #000;
+      font-weight: bold;
+      font-size: 10px;
+      margin-right: 5px;
+      border-radius: 2px;
+    }
+
+    .recommendation-level.high {
+      background: var(--critical);
+      color: white;
+    }
+
+    .recommendation-level.medium {
+      background: var(--accent-yellow);
+      color: #000;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .dashboard-grid-large {
+        grid-column: span 1;
+      }
+
+      .report-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .auth-section {
+        position: relative;
+        right: auto;
+        top: auto;
+        width: 100%;
+        max-height: none;
+        margin-bottom: 20px;
+      }
+
+      .auth-section.minimized {
+        width: 100%;
+        max-height: 50px;
+      }
+
+      .minimize-btn {
+        top: 8px;
+        right: 8px;
+      }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state p {
+      font-size: 12px;
+      color: var(--accent-cyan);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* Notifications Toast */
+    .notification {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: linear-gradient(135deg, rgba(0, 255, 65, 0.2), rgba(0, 255, 255, 0.1));
+      border: 2px solid var(--accent-green);
+      padding: 15px 20px;
+      border-radius: 4px;
+      color: var(--accent-green);
+      font-size: 12px;
+      z-index: 1000;
+      box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+      animation: slideIn 0.3s ease-out;
+      max-width: 300px;
+    }
+
+    .notification.critical {
+      border-color: var(--critical);
+      background: linear-gradient(135deg, rgba(255, 23, 68, 0.2), rgba(255, 111, 0, 0.1));
+      color: var(--critical);
+      box-shadow: 0 0 20px rgba(255, 23, 68, 0.6);
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(-350px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(-350px);
+        opacity: 0;
+      }
+    }
+
+    /* Real-time Badge */
+    .real-time-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+      color: #000;
+      font-size: 10px;
+      font-weight: bold;
+      border-radius: 3px;
+      box-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+    }
+
+    .real-time-dot {
+      width: 6px;
+      height: 6px;
+      background: #000;
+      border-radius: 50%;
+      animation: realtimePulse 1s infinite;
+    }
+
+    @keyframes realtimePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    /* Activity Counter Badge */
+    .activity-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--critical);
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255, 23, 68, 0.6);
+      animation: badgePulse 2s infinite;
+    }
+
+    @keyframes badgePulse {
+      0%, 100% { box-shadow: 0 0 10px rgba(255, 23, 68, 0.6); }
+      50% { box-shadow: 0 0 20px rgba(255, 23, 68, 0.8); }
+    }
+
+    /* Update Indicator */
+    .update-flash {
+      animation: flashUpdate 0.6s ease-out;
+    }
+
+    @keyframes flashUpdate {
+      0% {
+        background-color: rgba(0, 255, 65, 0.4);
+        box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.3);
+      }
+      100% {
+        background-color: transparent;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="notificationContainer"></div>
+  
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div>
+        <h1>🔒 SECURITY TESTING DASHBOARD</h1>
+      </div>
+      <div class="header-stats">
+        <div class="stat-item">
+          <span class="stat-label">TESTS RUN:</span>
+          <span class="stat-value" id="testsRun">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">ACTIVE THREATS:</span>
+          <span class="stat-value critical" id="threatsCount">0</span>
+          <span class="activity-badge" id="threatsBadge" style="display: none;">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">SYSTEM STATUS:</span>
+          <span class="stat-value" id="sysStatus">LOADING...</span>
+        </div>
+        <div class="real-time-badge">
+          <span class="real-time-dot"></span>
+          LIVE
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="dashboard-grid">
+      <!-- Test Results Panel -->
+      <div class="panel">
+        <div class="panel-title">TEST RESULTS</div>
+        <div class="metric-box">
+          <div class="metric-label">PASSED</div>
+          <div class="metric-value" id="testsPassed">0</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">FAILED</div>
+          <div class="metric-value critical" id="testsFailed">0</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">WARNINGS</div>
+          <div class="metric-value warning" id="testsWarning">0</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">IN PROGRESS</div>
+          <div class="metric-value" id="testsProgress">0</div>
+        </div>
+      </div>
+
+      <!-- Attacks Detection Panel (Large) -->
+      <div class="panel dashboard-grid-large">
+        <div class="panel-title">ATTACKS DETECTION</div>
+        <div class="chart-container">
+          <canvas id="attacksChart"></canvas>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 11px;">
+          <div style="text-align: center; padding: 10px; background: rgba(255, 23, 68, 0.1); border: 1px solid rgba(255, 23, 68, 0.5);">
+            <div style="color: var(--text-secondary);">INTRUSION ATTEMPTS</div>
+            <div style="color: var(--critical); font-weight: bold; font-size: 16px;" id="intrusionCount">58</div>
+          </div>
+          <div style="text-align: center; padding: 10px; background: rgba(0, 255, 65, 0.1); border: 1px solid rgba(0, 255, 65, 0.5);">
+            <div style="color: var(--text-secondary);">MALWARE DETECTED</div>
+            <div style="color: var(--accent-green); font-weight: bold; font-size: 16px;" id="malwareCount">16</div>
+          </div>
+          <div style="text-align: center; padding: 10px; background: rgba(255, 111, 0, 0.1); border: 1px solid rgba(255, 111, 0, 0.5);">
+            <div style="color: var(--text-secondary);">PHISHING ATTACKS</div>
+            <div style="color: var(--high); font-weight: bold; font-size: 16px;" id="phishingCount">9</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vulnerability Status Panel -->
+      <div class="panel">
+        <div class="panel-title">VULNERABILITY STATUS</div>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+          <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(255, 23, 68, 0.1); border-left: 3px solid var(--critical);">
+            <span>● SQL Injection</span>
+            <span style="color: var(--critical); font-weight: bold;">HIGH</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(255, 23, 68, 0.1); border-left: 3px solid var(--critical);">
+            <span>● Remote Code Execution</span>
+            <span style="color: var(--critical); font-weight: bold;">HIGH</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(255, 23, 68, 0.1); border-left: 3px solid var(--critical);">
+            <span>● Open Ports Detected</span>
+            <span style="color: var(--critical); font-weight: bold;">HIGH</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(255, 179, 0, 0.1); border-left: 3px solid var(--medium);">
+            <span>● Weak Passwords</span>
+            <span style="color: var(--medium); font-weight: bold;">MEDIUM</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerts Panel -->
+      <div class="panel">
+        <div class="panel-title">ALERTS</div>
+        <div class="alert-list" id="alertsList"></div>
+        <div id="alertsEmpty" class="empty-state">
+          <p>No alerts at the moment</p>
+        </div>
+      </div>
+
+      <!-- Active Threats Panel -->
+      <div class="panel">
+        <div class="panel-title">ACTIVE THREATS</div>
+        <div style="display: flex; flex-direction: column; align-items: center; padding: 40px 20px;">
+          <div style="font-size: 60px; color: var(--critical); font-weight: bold; text-shadow: 0 0 30px var(--critical);" id="threatsBig">5</div>
+          <div style="font-size: 14px; color: var(--text-secondary); margin-top: 10px;">UNDER INVESTIGATION</div>
+        </div>
+      </div>
+
+      <!-- System Logs Panel -->
+      <div class="panel">
+        <div class="panel-title">SYSTEM LOGS</div>
+        <div class="alert-list" id="logsList"></div>
+      </div>
+
+      <!-- Security Scan Panel -->
+      <div class="panel">
+        <div class="panel-title">SECURITY SCAN</div>
+        <div style="display: flex; justify-content: center; gap: 40px; padding: 20px;">
+          <div style="text-align: center;">
+            <div style="font-size: 32px; color: var(--accent-cyan); font-weight: bold;" id="testsCompleted">42</div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 5px;">TESTS COMPLETED</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 32px; color: var(--critical); font-weight: bold;" id="criticalIssues">4</div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 5px;">CRITICAL ISSUES</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Network Status Panel -->
+      <div class="panel">
+        <div class="panel-title">NETWORK STATUS</div>
+        <div style="display: flex; flex-direction: column; gap: 15px; padding: 15px 0;">
+          <div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">TRAFFIC MONITORING</div>
+            <div style="display: flex; gap: 20px; font-size: 12px;">
+              <div>
+                <div style="color: var(--accent-green); margin-bottom: 3px;">▲ UPLOAD:</div>
+                <div style="color: var(--accent-green); font-weight: bold;" id="uploadSpeed">325 MBPS</div>
+              </div>
+              <div>
+                <div style="color: var(--accent-green); margin-bottom: 3px;">▼ DOWNLOAD:</div>
+                <div style="color: var(--accent-green); font-weight: bold;" id="downloadSpeed">512 MBPS</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+        <button class="tab-btn" onclick="switchTab('report')">📈 Relatório Inteligente</button>
+        <button class="tab-btn" onclick="switchTab('history')">📜 Histórico</button>
+      </div>
+
+      <!-- Dashboard Tab -->
+      <div id="dashboard-tab" class="tab-content active"></div>
+
+      <!-- Report Tab -->
+      <div id="report-tab" class="tab-content">
+        <div class="report-grid">
+          <!-- Security Summary -->
+          <div class="report-section">
+            <div class="report-title">🔒 RESUMO DE SEGURANÇA</div>
+            <div id="securitySummary"></div>
+          </div>
+
+          <!-- Threat Analysis -->
+          <div class="report-section">
+            <div class="report-title">⚔️ ANÁLISE DE AMEAÇAS</div>
+            <div id="threatAnalysis"></div>
+          </div>
+
+          <!-- Event Patterns -->
+          <div class="report-section">
+            <div class="report-title">🔍 PADRÕES DETECTADOS</div>
+            <div id="eventPatterns"></div>
+          </div>
+
+          <!-- Risk Trends -->
+          <div class="report-section">
+            <div class="report-title">📉 TENDÊNCIA DE RISCO</div>
+            <div id="riskTrends"></div>
+          </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="report-section" style="grid-column: span 2;">
+          <div class="report-title">💡 RECOMENDAÇÕES INTELIGENTES</div>
+          <div id="recommendations"></div>
+        </div>
+
+        <!-- Performance -->
+        <div class="report-section">
+          <div class="report-title">⚡ PERFORMANCE</div>
+          <div id="performanceMetrics"></div>
+        </div>
+
+        <!-- Compliance -->
+        <div class="report-section">
+          <div class="report-title">✅ CONFORMIDADE</div>
+          <div id="complianceStatus"></div>
+        </div>
+
+        <!-- Brute Force Protection -->
+        <div class="report-section" style="grid-column: span 2; border-color: var(--critical);">
+          <div class="report-title" style="color: var(--critical);">🔐 PROTEÇÃO CONTRA FORÇA BRUTA</div>
+          <div id="bruteForceStatus"></div>
+        </div>
+
+        <!-- Unauthorized Access Protection -->
+        <div class="report-section" style="grid-column: span 2; border-color: var(--accent-yellow); margin-top: 20px;">
+          <div class="report-title" style="color: var(--accent-yellow);">🚫 PROTEÇÃO - ACESSO NÃO AUTORIZADO</div>
+          <div id="unauthorizedAccessStatus"></div>
+        </div>
+      </div>
+
+      <!-- History Tab -->
+      <div id="history-tab" class="tab-content">
+        <div class="report-section">
+          <div class="report-title">📜 HISTÓRICO DE EVENTOS</div>
+          <div id="eventHistory" style="max-height: 600px; overflow-y: auto;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth Section -->
+    <div class="auth-section" id="authSection">
+      <button class="minimize-btn" id="minimizeBtn" onclick="toggleMinimize()">−</button>
+      <div class="auth-content">
+        <div id="loginForm">
+          <div style="margin-bottom: 20px;">
+            <h2 style="color: var(--accent-cyan); font-size: 16px; text-shadow: 0 0 10px var(--accent-cyan);">LOGIN</h2>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input type="text" id="username" class="form-control" placeholder="operator">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="password" class="form-control" placeholder="••••••••">
+          </div>
+          <button class="btn" onclick="handleLogin()">AUTHENTICATE</button>
+          <div id="authError"></div>
+        </div>
+
+        <div id="loggedInInfo" style="display: none;">
+          <div style="margin-bottom: 15px; font-size: 12px;">
+            <div style="color: var(--accent-green); margin-bottom: 10px;">✓ Authenticated</div>
+            <div style="color: var(--text-secondary); font-size: 11px;">
+              <strong>User:</strong> <span id="currentUser"></span><br>
+              <strong>Role:</strong> <span id="currentRole"></span>
+            </div>
+          </div>
+          <button class="btn" onclick="handleLogout()" style="background: linear-gradient(90deg, var(--accent-red), var(--accent-orange));">LOGOUT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let authToken = localStorage.getItem('authToken');
+    let chartInstance = null;
+    let refreshInterval = null;
+    let isMinimized = localStorage.getItem('authMinimized') === 'true';
+    let lastAlertCount = 0;
+    let lastThreatCount = 0;
+
+    // Initialize
+    if (authToken) {
+      showLoggedIn();
+    }
+
+    // Restore minimize state
+    if (isMinimized) {
+      document.getElementById('authSection').classList.add('minimized');
+      document.getElementById('minimizeBtn').textContent = '+';
+    }
+
+    function toggleMinimize() {
+      isMinimized = !isMinimized;
+      localStorage.setItem('authMinimized', isMinimized);
+      
+      const authSection = document.getElementById('authSection');
+      const minimizeBtn = document.getElementById('minimizeBtn');
+      
+      if (isMinimized) {
+        authSection.classList.add('minimized');
+        minimizeBtn.textContent = '+';
+      } else {
+        authSection.classList.remove('minimized');
+        minimizeBtn.textContent = '−';
+      }
+    }
+
+    function showNotification(message, type = 'info', duration = 4000) {
+      const container = document.getElementById('notificationContainer');
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      container.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+      }, duration);
+    }
+
+    function flashUpdate(element) {
+      if (!element) return;
+      element.classList.remove('update-flash');
+      void element.offsetWidth; // Trigger reflow
+      element.classList.add('update-flash');
+    }
+
+    function switchTab(tabName) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+      // Show selected tab
+      const tab = document.getElementById(tabName + '-tab');
+      const btn = event.target;
+      if (tab) tab.classList.add('active');
+      if (btn) btn.classList.add('active');
+
+      if (tabName === 'report') {
+        generateIntelligentReport();
+      } else if (tabName === 'history') {
+        generateEventHistory();
+      }
+    }
+
+    function generateIntelligentReport() {
+      // Generate security summary
+      const securitySummary = document.getElementById('securitySummary');
+      if (securitySummary) {
+        securitySummary.innerHTML = `
+          <div class="report-item">
+            <span>Status Geral de Segurança:</span>
+            <span id="overallSecurity">Bom</span>
+          </div>
+          <div class="report-item">
+            <span>Ameaças Ativas:</span>
+            <span id="activeThreatCount">0</span>
+          </div>
+          <div class="report-item">
+            <span>Eventos Críticos (24h):</span>
+            <span id="criticalEvents">0</span>
+          </div>
+          <div class="report-item">
+            <span>Taxa de Detecção:</span>
+            <span id="detectionRate">100%</span>
+          </div>
+          <div class="report-item">
+            <span>Último Incidente:</span>
+            <span id="lastIncident">Nenhum</span>
+          </div>
+        `;
+      }
+
+      // Generate threat analysis
+      const threatAnalysis = document.getElementById('threatAnalysis');
+      if (threatAnalysis) {
+        threatAnalysis.innerHTML = `
+          <div class="report-item high">
+            <span>Ataque de Força Bruta</span>
+            <span>Alto Risco</span>
+          </div>
+          <div class="report-item high">
+            <span>Acesso Não Autorizado</span>
+            <span>Alto Risco</span>
+          </div>
+          <div class="report-item medium">
+            <span>Falhas de Rede</span>
+            <span>Médio Risco</span>
+          </div>
+          <div class="report-item">
+            <span>Operações Normais</span>
+            <span>Baixo Risco</span>
+          </div>
+        `;
+      }
+
+      // Generate event patterns
+      const eventPatterns = document.getElementById('eventPatterns');
+      if (eventPatterns) {
+        eventPatterns.innerHTML = `
+          <div class="report-item">
+            <span>🔴 Padrão de Ataque PIN</span>
+            <span>3 tentativas/min</span>
+          </div>
+          <div class="report-item high">
+            <span>⚠️ Anomalia de Acesso Safe</span>
+            <span>Fora da manutenção</span>
+          </div>
+          <div class="report-item">
+            <span>📊 Pico de Atividade</span>
+            <span>16:45 - 16:50 UTC</span>
+          </div>
+          <div class="report-item">
+            <span>🔄 Taxa de Recuperação</span>
+            <span>Excelente</span>
+          </div>
+        `;
+      }
+
+      // Generate risk trends
+      const riskTrends = document.getElementById('riskTrends');
+      if (riskTrends) {
+        riskTrends.innerHTML = `
+          <div class="report-item">
+            <span>Tendência 24h</span>
+            <span style="color: var(--accent-green);">↓ Estável</span>
+          </div>
+          <div class="report-item">
+            <span>Tendência 7 dias</span>
+            <span style="color: var(--accent-green);">↓ Baixa</span>
+          </div>
+          <div class="report-item medium">
+            <span>Eventos Críticos</span>
+            <span>↑ +2 vs semana anterior</span>
+          </div>
+          <div class="report-item">
+            <span>Índice de Confiança</span>
+            <span style="color: var(--accent-green);">98.5%</span>
+          </div>
+        `;
+      }
+
+      // Generate recommendations
+      const recommendations = document.getElementById('recommendations');
+      if (recommendations) {
+        recommendations.innerHTML = `
+          <div class="report-recommendation">
+            <span class="recommendation-level high">CRÍTICO</span>
+            Implementar rate limiting mais agressivo para PIN (máximo 2 tentativas por minuto)
+          </div>
+          <div class="report-recommendation">
+            <span class="recommendation-level high">CRÍTICO</span>
+            Configurar alertas de acesso não autorizado ao cofre fora da janela de manutenção
+          </div>
+          <div class="report-recommendation">
+            <span class="recommendation-level medium">ALTO</span>
+            Revisar logs de rede e investigar padrões anômalos detectados às 16:45 UTC
+          </div>
+          <div class="report-recommendation">
+            <span class="recommendation-level medium">ALTO</span>
+            Aumentar frequência de verificações de integridade de dados sensíveis
+          </div>
+          <div class="report-recommendation">
+            <span class="recommendation-level">MÉDIO</span>
+            Considerar implementação de autenticação multifator para operadores
+          </div>
+        `;
+      }
+
+      // Generate performance metrics
+      const performanceMetrics = document.getElementById('performanceMetrics');
+      if (performanceMetrics) {
+        performanceMetrics.innerHTML = `
+          <div class="report-item">
+            <span>Tempo de Resposta Médio</span>
+            <span>45ms</span>
+          </div>
+          <div class="report-item">
+            <span>Taxa de Processamento</span>
+            <span>99.8%</span>
+          </div>
+          <div class="report-item">
+            <span>Disponibilidade do Sistema</span>
+            <span style="color: var(--accent-green);">99.9%</span>
+          </div>
+          <div class="report-item">
+            <span>Tempo de Detecção de Ameaça</span>
+            <span>0.23s</span>
+          </div>
+        `;
+      }
+
+      // Generate compliance status
+      const complianceStatus = document.getElementById('complianceStatus');
+      if (complianceStatus) {
+        complianceStatus.innerHTML = `
+          <div class="report-item" style="color: var(--accent-green);">
+            <span>✓ PCI DSS</span>
+            <span>Conforme</span>
+          </div>
+          <div class="report-item" style="color: var(--accent-green);">
+            <span>✓ ISO 27001</span>
+            <span>Conforme</span>
+          </div>
+          <div class="report-item" style="color: var(--accent-green);">
+            <span>✓ Criptografia SSL/TLS</span>
+            <span>Ativo</span>
+          </div>
+          <div class="report-item medium">
+            <span>⚠️ Backup Automático</span>
+            <span>Pendente</span>
+          </div>
+        `;
+      }
+
+      // Generate brute force protection status
+      fetch('/api/brute-force-status')
+        .then(r => r.json())
+        .then(bruteForceData => {
+          const bruteForceStatus = document.getElementById('bruteForceStatus');
+          if (bruteForceStatus) {
+            let html = `
+              <div class="report-item">
+                <span>Status de Proteção:</span>
+                <span style="color: var(--accent-green);">✓ ${bruteForceData.protection_status}</span>
+              </div>
+              <div class="report-item ${bruteForceData.threat_level === 'CRITICAL' ? 'high' : ''}">
+                <span>Nível de Ameaça Detectado:</span>
+                <span>${bruteForceData.threat_level}</span>
+              </div>
+              <div class="report-item">
+                <span>Tentativas de Força Bruta:</span>
+                <span>${bruteForceData.total_brute_force_attempts}</span>
+              </div>
+              <div class="report-item">
+                <span>Contas Bloqueadas:</span>
+                <span>${bruteForceData.blocked_accounts}</span>
+              </div>
+              <div class="report-item">
+                <span>IPs Suspeitos:</span>
+                <span>${bruteForceData.suspicious_ips.length > 0 ? bruteForceData.suspicious_ips.join(', ') : 'Nenhum'}</span>
+              </div>
+            `;
+
+            if (bruteForceData.locked_accounts && bruteForceData.locked_accounts.length > 0) {
+              html += '<div style="margin-top: 10px; border-top: 1px solid var(--accent-cyan); padding-top: 10px;"><strong>Contas Atualmente Bloqueadas:</strong></div>';
+              bruteForceData.locked_accounts.forEach(lock => {
+                html += `
+                  <div class="report-item high">
+                    <span>${lock.account} (${lock.attempts} tentativas)</span>
+                    <span>Bloqueado ${lock.lockout_remaining}</span>
+                  </div>
+                `;
+              });
+            }
+
+            html += `
+              <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent-cyan);">
+                <strong>Configuração de Lockout:</strong><br>
+                <div class="report-item" style="margin-top: 10px;">
+                  <span>Nível 1 (${bruteForceData.max_attempts_tier1} tentativas):</span>
+                  <span>${bruteForceData.tier1_lockout_minutes} min</span>
+                </div>
+                <div class="report-item">
+                  <span>Nível 2 (${bruteForceData.max_attempts_tier2} tentativas):</span>
+                  <span>${bruteForceData.tier2_lockout_minutes} min</span>
+                </div>
+                <div class="report-item">
+                  <span>Nível 3 (${bruteForceData.max_attempts_tier3} tentativas):</span>
+                  <span>${bruteForceData.tier3_lockout_minutes} min</span>
+                </div>
+              </div>
+            `;
+
+            bruteForceStatus.innerHTML = html;
+          }
+        })
+        .catch(err => console.error('Erro ao carregar dados de brute force:', err));
+
+      // Generate unauthorized access protection status
+      fetch('/api/unauthorized-access-status')
+        .then(r => r.json())
+        .then(unAuthData => {
+          const unAuthStatus = document.getElementById('unauthorizedAccessStatus');
+          if (unAuthStatus) {
+            let html = `
+              <div class="report-item">
+                <span>Criptografia SSL/TLS:</span>
+                <span style="color: var(--accent-green);">✓ Ativo</span>
+              </div>
+              <div class="report-item ${unAuthData.threat_level === 'CRITICAL' ? 'high' : unAuthData.threat_level === 'HIGH' ? 'medium' : ''}">
+                <span>Nível de Ameaça:</span>
+                <span>${unAuthData.threat_level}</span>
+              </div>
+              <div class="report-item">
+                <span>Total de Tentativas de Acesso Não Autorizado:</span>
+                <span>${unAuthData.total_unauthorized_attempts}</span>
+              </div>
+              <div class="report-item">
+                <span>IPs Bloqueados:</span>
+                <span>${unAuthData.blocked_ips.length}</span>
+              </div>
+              <div class="report-item">
+                <span>Acesso Janela de Manutenção:</span>
+                <span>${unAuthData.maintenance_window.start_hour}:00 - ${unAuthData.maintenance_window.end_hour}:00 (${unAuthData.maintenance_window.is_active ? 'ATIVA' : 'INATIVA'})</span>
+              </div>
+            `;
+
+            if (unAuthData.blocked_ips.length > 0) {
+              html += '<div style="margin-top: 10px; border-top: 1px solid var(--accent-yellow); padding-top: 10px;"><strong>IPs Bloqueados Atualmente:</strong></div>';
+              unAuthData.blocked_ips.forEach(block => {
+                html += `
+                  <div class="report-item high">
+                    <span>🚫 ${block.ip}</span>
+                    <span>Bloqueado ${block.blocked_until}</span>
+                  </div>
+                `;
+              });
+            }
+
+            if (unAuthData.suspicious_attempts.length > 0) {
+              html += '<div style="margin-top: 10px; border-top: 1px solid var(--accent-yellow); padding-top: 10px;"><strong>IPs Suspeitos (Monitorando):</strong></div>';
+              unAuthData.suspicious_attempts.forEach(susp => {
+                html += `
+                  <div class="report-item medium">
+                    <div>
+                      <strong>⚠️ ${susp.ip}</strong> (${susp.failed_attempts} tentativas)<br>
+                      <span style="font-size: 10px; color: var(--text-secondary);">Última: ${susp.last_attempt}</span>
+                    </div>
+                  </div>
+                `;
+              });
+            }
+
+            html += `
+              <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent-cyan);">
+                <strong>Proteções Ativas:</strong><br>
+                <div class="report-item" style="margin-top: 10px;">
+                  <span>✓ Validação de Permissões</span>
+                  <span style="color: var(--accent-green);">Ativa</span>
+                </div>
+                <div class="report-item">
+                  <span>✓ Verificação de Janela de Manutenção</span>
+                  <span style="color: var(--accent-green);">Ativa</span>
+                </div>
+                <div class="report-item">
+                  <span>✓ Bloqueio Progressivo de IP</span>
+                  <span style="color: var(--accent-green);">Ativa</span>
+                </div>
+                <div class="report-item">
+                  <span>✓ Logging de Tentativas</span>
+                  <span style="color: var(--accent-green);">Ativa</span>
+                </div>
+              </div>
+            `;
+
+            unAuthStatus.innerHTML = html;
+          }
+        })
+        .catch(err => console.error('Erro ao carregar dados de acesso não autorizado:', err));
+    }
+
+    function generateEventHistory() {
+      const eventHistory = document.getElementById('eventHistory');
+      if (!eventHistory) return;
+
+      const now = new Date();
+      const events = [];
+
+      // Generate mock history
+      for (let i = 0; i < 20; i++) {
+        const time = new Date(now.getTime() - i * 60000);
+        const eventTypes = [
+          { type: 'PIN_VERIFIED', level: 'success', icon: '✓' },
+          { type: 'PIN_FAILED', level: 'warning', icon: '✗' },
+          { type: 'SAFE_OPEN', level: 'critical', icon: '⚠' },
+          { type: 'NETWORK_STATUS', level: 'info', icon: 'ℹ' },
+          { type: 'MAINTENANCE', level: 'info', icon: '🔧' }
+        ];
+
+        const event = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+        events.push({
+          time: time.toLocaleTimeString('pt-BR'),
+          type: event.type,
+          level: event.level,
+          icon: event.icon
+        });
+      }
+
+      eventHistory.innerHTML = events.map(e => `
+        <div class="report-item ${e.level}">
+          <div>
+            <strong>${e.icon} ${e.type}</strong><br>
+            <span style="font-size: 10px; color: var(--text-secondary);">${e.time}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function handleLogin() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        showError('Please enter username and password');
+        return;
+      }
+
+      try {
+        const response = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          authToken = data.access_token;
+          localStorage.setItem('authToken', authToken);
+          localStorage.setItem('operator_name', data.operator_name);
+          localStorage.setItem('role', data.role);
+          
+          showLoggedIn();
+          startAutoRefresh();
+          showSuccess('Login successful!');
+        } else {
+          showError('Invalid credentials');
+        }
+      } catch (error) {
+        showError('Login failed: ' + error.message);
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('operator_name');
+      localStorage.removeItem('role');
+      authToken = null;
+      document.getElementById('loginForm').style.display = 'block';
+      document.getElementById('loggedInInfo').style.display = 'none';
+      if (refreshInterval) clearInterval(refreshInterval);
+    }
+
+    function showLoggedIn() {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('loggedInInfo').style.display = 'block';
+      document.getElementById('currentUser').textContent = localStorage.getItem('operator_name') || 'User';
+      document.getElementById('currentRole').textContent = localStorage.getItem('role') || 'Guest';
+      startAutoRefresh();
+    }
+
+    function showError(msg) {
+      const errorDiv = document.getElementById('authError');
+      errorDiv.className = 'error';
+      errorDiv.textContent = '✗ ' + msg;
+    }
+
+    function showSuccess(msg) {
+      const errorDiv = document.getElementById('authError');
+      errorDiv.className = 'success';
+      errorDiv.textContent = '✓ ' + msg;
+      setTimeout(() => errorDiv.textContent = '', 3000);
+    }
+
+    async function refreshDashboard() {
+      try {
+        const [stats, chartData, vuln, logs, network] = await Promise.all([
+          fetch('/api/dashboard-stats').then(r => r.json()),
+          fetch('/api/chart-data').then(r => r.json()),
+          fetch('/api/vulnerabilities-status').then(r => r.json()),
+          fetch('/api/system-logs').then(r => r.json()),
+          fetch('/api/network-metrics').then(r => r.json()),
+        ]);
+
+        // Update header stats
+        const testCount = stats.tests_passed + stats.tests_failed + stats.warnings;
+        document.getElementById('testsRun').textContent = testCount;
+        document.getElementById('threatsCount').textContent = stats.active_threats;
+        document.getElementById('sysStatus').textContent = stats.system_status;
+        document.getElementById('sysStatus').className = 'stat-value ' + (stats.system_status === 'CRITICAL' ? 'critical' : stats.system_status === 'WARNING' ? 'warning' : '');
+
+        // Update test results
+        document.getElementById('testsPassed').textContent = stats.tests_passed;
+        document.getElementById('testsFailed').textContent = stats.tests_failed;
+        document.getElementById('testsWarning').textContent = stats.warnings;
+        document.getElementById('testsProgress').textContent = stats.in_progress;
+
+        // Update threats
+        document.getElementById('threatsBig').textContent = stats.active_threats;
+        
+        // Real-time threat detection with notification
+        if (stats.active_threats > lastThreatCount) {
+          const newThreats = stats.active_threats - lastThreatCount;
+          showNotification(`🚨 ${newThreats} nova(s) ameaça(s) detectada(s)!`, 'critical');
+          flashUpdate(document.getElementById('threatsBig'));
+          
+          // Show badge with count
+          const badge = document.getElementById('threatsBadge');
+          badge.textContent = newThreats;
+          badge.style.display = 'block';
+          
+          setTimeout(() => { badge.style.display = 'none'; }, 5000);
+        }
+        lastThreatCount = stats.active_threats;
+
+        // Update security scan
+        document.getElementById('testsCompleted').textContent = vuln.tests_completed;
+        document.getElementById('criticalIssues').textContent = vuln.critical_issues;
+
+        // Update network
+        document.getElementById('uploadSpeed').textContent = network.upload_mbps + ' MBPS';
+        document.getElementById('downloadSpeed').textContent = network.download_mbps + ' MBPS';
+
+        // Update alerts
+        const alertsList = document.getElementById('alertsList');
+        const currentAlertCount = (stats.alerts && stats.alerts.length) || 0;
+        
+        if (stats.alerts && stats.alerts.length > 0) {
+          // Real-time alert notification
+          if (currentAlertCount > lastAlertCount) {
+            const newAlerts = currentAlertCount - lastAlertCount;
+            const latestAlert = stats.alerts[0];
+            if (latestAlert.severity === 'critical') {
+              showNotification(`⛔ ALERTA CRÍTICO: ${latestAlert.title}`, 'critical');
+              flashUpdate(document.getElementById('alertsList'));
+            } else if (latestAlert.severity === 'high') {
+              showNotification(`⚠️ Alerta Alto: ${latestAlert.title}`, 'info');
+            }
+          }
+          lastAlertCount = currentAlertCount;
+          
+          alertsList.innerHTML = stats.alerts.slice(0, 5).map(a => `
+            <div class="alert-item ${a.severity}">
+              <span class="alert-message">⚠ ${a.title}</span>
+              <span class="alert-time">${a.time}</span>
+            </div>
+          `).join('');
+          document.getElementById('alertsEmpty').style.display = 'none';
+        } else {
+          alertsList.innerHTML = '';
+          document.getElementById('alertsEmpty').style.display = 'block';
+          lastAlertCount = 0;
+        }
+
+        // Update logs
+        const logsList = document.getElementById('logsList');
+        if (logs.logs && logs.logs.length > 0) {
+          logsList.innerHTML = logs.logs.slice(0, 5).map(l => `
+            <div class="alert-item ${l.severity}">
+              <span class="alert-message">● ${l.message}</span>
+              <span class="alert-time">${l.time}</span>
+            </div>
+          `).join('');
+        }
+
+        // Update chart
+        updateChart(chartData);
+
+      } catch (error) {
+        console.error('Error refreshing dashboard:', error);
+      }
+    }
+
+    function updateChart(data) {
+      const ctx = document.getElementById('attacksChart');
+      if (!ctx) return;
+
+      if (chartInstance) {
+        chartInstance.data.labels = data.labels || [];
+        chartInstance.data.datasets[0].data = data.threat_activity || [];
+        chartInstance.data.datasets[1].data = data.intrusion_attempts || [];
+        chartInstance.data.datasets[2].data = data.malware_detected || [];
+        chartInstance.update();
+      } else {
+        chartInstance = new Chart(ctx, {
+          type: 'area',
+          data: {
+            labels: data.labels || [],
+            datasets: [
+              {
+                label: 'Threat Activity',
+                data: data.threat_activity || [],
+                borderColor: '#ff1744',
+                backgroundColor: 'rgba(255, 23, 68, 0.2)',
+                tension: 0.4,
+                fill: true,
+              },
+              {
+                label: 'Intrusion',
+                data: data.intrusion_attempts || [],
+                borderColor: '#ff6f00',
+                backgroundColor: 'rgba(255, 111, 0, 0.1)',
+                tension: 0.4,
+                fill: true,
+              },
+              {
+                label: 'Malware',
+                data: data.malware_detected || [],
+                borderColor: '#00ff41',
+                backgroundColor: 'rgba(0, 255, 65, 0.1)',
+                tension: 0.4,
+                fill: true,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  color: '#888',
+                  font: { size: 11 }
+                }
+              }
+            },
+            scales: {
+              y: {
+                ticks: { color: '#666', font: { size: 10 } },
+                grid: { color: 'rgba(0, 255, 65, 0.05)' },
+                beginAtZero: true,
+              },
+              x: {
+                ticks: { color: '#666', font: { size: 10 } },
+                grid: { color: 'rgba(0, 255, 65, 0.05)' }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function startAutoRefresh() {
+      if (refreshInterval) clearInterval(refreshInterval);
+      refreshDashboard(); // Initial refresh
+      refreshInterval = setInterval(refreshDashboard, 3000); // Refresh every 3 seconds
+    }
+
+    // Load initial data
+    if (authToken) {
+      startAutoRefresh();
+    }
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATM Security - Tactical Command Center</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --dark-bg: #000000;
+      --panel-bg: #0d0d0d;
+      --border-color: #1a1a2e;
+      --accent-green: #00ff41;
+      --accent-red: #ff2d55;
+      --accent-cyan: #00ffff;
+      --accent-purple: #da70d6;
+      --accent-orange: #ff4500;
+      --text-primary: #ffffff;
+      --text-secondary: #888888;
+      --critical: #ff1744;
+      --high: #ff6f00;
+      --medium: #ffb300;
+      --low: #1de9b6;
+      --grid-line: rgba(0, 255, 65, 0.08);
+    }
+
+    body {
+      font-family: 'Courier New', 'Courier', monospace;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0, 255, 65, 0.08) 0%, transparent 50%),
+                  radial-gradient(ellipse at 0% 50%, rgba(0, 255, 255, 0.05) 0%, transparent 50%),
+                  linear-gradient(180deg, #000000 0%, #0a0a0f 100%);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Advanced scanlines + grid effect */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        repeating-linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0.3),
+          rgba(0, 0, 0, 0.3) 1px,
+          transparent 1px,
+          transparent 2px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          rgba(0, 255, 65, 0.02) 0px,
+          rgba(0, 255, 65, 0.02) 1px,
+          transparent 1px,
+          transparent 100px
+        );
+      pointer-events: none;
+      z-index: 1;
+      animation: flicker 0.15s infinite;
+    }
+
+    @keyframes flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        opacity: 1;
+      }
+      20%, 24%, 55% {
+        opacity: 0.95;
+      }
+    }
+
+    /* Glow effect background */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+      animation: moveGlow 15s ease-in-out infinite;
+    }
+
+    @keyframes moveGlow {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(50px, -50px); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      max-width: 1920px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* === HEADER STYLING === */
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 40px;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--accent-cyan);
+      border-image: linear-gradient(90deg, var(--accent-cyan), var(--accent-green)) 1;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 1px 0 rgba(0, 255, 65, 0.2);
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
+      animation: scanline 8s linear infinite;
+    }
+
+    @keyframes scanline {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .header-title {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .team-name {
+      font-size: 11px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-weight: bold;
+      animation: glow-text 2s ease-in-out infinite;
+    }
+
+    @keyframes glow-text {
+      0%, 100% { text-shadow: 0 0 10px var(--accent-cyan); }
+      50% { text-shadow: 0 0 20px var(--accent-cyan), 0 0 30px rgba(0, 255, 255, 0.5); }
+    }
+
+    h1 {
+      font-size: 36px;
+      color: var(--accent-green);
+      text-shadow: 0 0 15px rgba(0, 255, 65, 0.8),
+                   0 0 30px rgba(0, 255, 65, 0.4),
+                   0 0 45px rgba(0, 255, 255, 0.2);
+      font-weight: bold;
+      letter-spacing: 2px;
+      animation: glow-title 3s ease-in-out infinite;
+    }
+
+    @keyframes glow-title {
+      0%, 100% { 
+        text-shadow: 0 0 15px rgba(0, 255, 65, 0.8);
+        transform: scaleX(1);
+      }
+      50% { 
+        text-shadow: 0 0 30px rgba(0, 255, 65, 1), 
+                     0 0 60px rgba(0, 255, 255, 0.5);
+        transform: scaleX(1.02);
+      }
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 30px;
+      align-items: center;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 10px 15px;
+      background: rgba(0, 255, 65, 0.05);
+      border: 1px solid var(--accent-green);
+      border-radius: 2px;
+      box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1);
+    }
+
+    .stat-label {
+      color: var(--accent-cyan);
+      font-size: 9px;
+      letter-spacing: 2px;
+    }
+
+    .stat-value {
+      color: var(--accent-green);
+      font-weight: bold;
+      font-size: 14px;
+      text-shadow: 0 0 5px var(--accent-green);
+    }
+
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .panel {
+      background: rgba(13, 13, 13, 0.9);
+      border: 2px solid var(--accent-green);
+      border-radius: 0;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      box-shadow: 0 0 15px rgba(0, 255, 65, 0.3),
+                  inset 0 1px 0 rgba(0, 255, 65, 0.2);
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green), var(--accent-cyan));
+      opacity: 0.7;
+      animation: topGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes topGlow {
+      0%, 100% { box-shadow: 0 0 5px var(--accent-green); }
+      50% { box-shadow: 0 0 15px var(--accent-cyan); }
+    }
+
+    .panel:hover {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.5),
+                  inset 0 0 20px rgba(0, 255, 255, 0.2),
+                  0 0 10px rgba(0, 255, 65, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .panel::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
+    }
+
+    .panel-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(90deg, rgba(0, 255, 65, 0.05) 0%, transparent 100%);
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent-green);
+      text-shadow: 0 0 5px var(--accent-green);
+    }
+
+    .panel-content {
+      padding: 20px;
+    }
+
+    /* === STATUS BADGES === */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 0;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border: 1px solid;
+      backdrop-filter: blur(5px);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .status-badge.critical {
+      background: rgba(255, 23, 68, 0.15);
+      color: var(--critical);
+      border-color: var(--critical);
+    }
+
+    .status-badge.critical .status-dot {
+      background: var(--critical);
+      box-shadow: 0 0 15px var(--critical);
+    }
+
+    .status-badge.high {
+      background: rgba(255, 69, 0, 0.15);
+      color: var(--high);
+      border-color: var(--high);
+    }
+
+    .status-badge.high .status-dot {
+      background: var(--high);
+      box-shadow: 0 0 15px var(--high);
+    }
+
+    .status-badge.medium {
+      background: rgba(255, 179, 0, 0.15);
+      color: var(--medium);
+      border-color: var(--medium);
+    }
+
+    .status-badge.medium .status-dot {
+      background: var(--medium);
+      box-shadow: 0 0 15px var(--medium);
+    }
+
+    .status-badge.low {
+      background: rgba(29, 233, 182, 0.15);
+      color: var(--low);
+      border-color: var(--low);
+    }
+
+    .status-badge.low .status-dot {
+      background: var(--low);
+      box-shadow: 0 0 15px var(--low);
+    }
+
+    @keyframes pulse {
+      0%, 100% { 
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% { 
+        opacity: 0.6;
+        transform: scale(1.2);
+      }
+    }
+
+    /* Metric Boxes */
+    .metric-big {
+      text-align: center;
+      padding: 20px 10px;
+    }
+
+    .metric-value {
+      font-size: 42px;
+      font-weight: bold;
+      color: var(--accent-green);
+      text-shadow: 0 0 10px rgba(0, 255, 65, 0.8),
+                   0 0 20px rgba(0, 255, 65, 0.4);
+      letter-spacing: 3px;
+      margin: 10px 0 5px;
+      animation: flicker-text 3s ease-in-out infinite;
+      font-family: 'Courier New', monospace;
+    }
+
+    @keyframes flicker-text {
+      0%, 100% { 
+        text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+      }
+      25% {
+        text-shadow: 0 0 10px rgba(0, 255, 65, 0.8),
+                     0 0 20px rgba(0, 255, 255, 0.4);
+      }
+      50% {
+        text-shadow: 0 0 20px rgba(0, 255, 65, 1),
+                     0 0 30px rgba(0, 255, 65, 0.5);
+      }
+      75% {
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+      }
+    }
+
+    .metric-label {
+      font-size: 10px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    /* Auth Section */
+    .auth-panel {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(0, 255, 65, 0.08) 0%, rgba(0, 255, 255, 0.05) 100%);
+      border: 2px solid var(--accent-cyan);
+      box-shadow: 0 0 25px rgba(0, 255, 255, 0.3),
+                  inset 0 0 20px rgba(0, 255, 65, 0.1);
+    }
+
+    .auth-info {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .user-avatar {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, rgba(0, 255, 65, 0.3), rgba(0, 255, 255, 0.2));
+      border: 2px solid var(--accent-green);
+      border-radius: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: var(--accent-green);
+      font-size: 20px;
+      text-shadow: 0 0 10px var(--accent-green);
+      box-shadow: 0 0 15px var(--accent-green),
+                  inset 0 0 10px rgba(0, 255, 65, 0.2);
+    }
+
+    .user-data {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--accent-green);
+      text-shadow: 0 0 5px var(--accent-green);
+    }
+
+    .user-role {
+      font-size: 10px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .auth-form {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 150px;
+    }
+
+    .form-label {
+      font-size: 10px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    input, select {
+      background: rgba(0, 255, 65, 0.08);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      padding: 8px 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      border-radius: 0;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+      text-shadow: 0 0 5px var(--accent-green);
+    }
+
+    input::placeholder, select::placeholder {
+      color: rgba(0, 255, 65, 0.5);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.5),
+                  inset 0 0 10px rgba(0, 255, 255, 0.2);
+      background: rgba(0, 255, 255, 0.1);
+      color: var(--accent-cyan);
+    }
+
+    button {
+      padding: 10px 24px;
+      background: linear-gradient(135deg, rgba(0, 255, 65, 0.3), rgba(0, 255, 255, 0.2));
+      color: var(--accent-green);
+      border: 2px solid var(--accent-green);
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-size: 10px;
+      cursor: pointer;
+      border-radius: 0;
+      transition: all 0.3s ease;
+      font-family: 'Courier New', monospace;
+      box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.5), transparent);
+      transition: left 0.5s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(0, 255, 65, 0.8),
+                  0 0 10px rgba(0, 255, 255, 0.5),
+                  inset 0 0 10px rgba(0, 255, 65, 0.2);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    button:hover::before {
+      left: 100%;
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: linear-gradient(135deg, rgba(255, 23, 68, 0.2), rgba(255, 107, 107, 0.1));
+      color: var(--critical);
+      border-color: var(--critical);
+      box-shadow: 0 0 15px rgba(255, 23, 68, 0.5);
+    }
+
+    button.secondary:hover {
+      box-shadow: 0 0 30px rgba(255, 23, 68, 0.8),
+                  inset 0 0 10px rgba(255, 23, 68, 0.2);
+    }
+
+    /* Alert/Event Streams */
+    .stream {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .stream-item {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 12px;
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+      border-left: 4px solid var(--low);
+      font-size: 10px;
+      border-radius: 0;
+      transition: all 0.3s ease;
+      border-top: 1px solid rgba(0, 255, 65, 0.1);
+      border-radius: 2px;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .stream-item:hover {
+      background: linear-gradient(135deg, rgba(0, 255, 65, 0.1), rgba(0, 255, 255, 0.05));
+      border-left-color: var(--accent-cyan);
+      box-shadow: 0 0 15px rgba(0, 255, 65, 0.3),
+                  inset 0 0 10px rgba(0, 255, 65, 0.05);
+      transform: translateX(5px);
+    }
+
+    .stream-item.critical {
+      border-left-color: var(--critical);
+      background: linear-gradient(135deg, rgba(255, 23, 68, 0.1), rgba(255, 23, 68, 0.05));
+    }
+
+    .stream-item.critical:hover {
+      background: linear-gradient(135deg, rgba(255, 23, 68, 0.2), rgba(255, 23, 68, 0.1));
+      box-shadow: 0 0 15px rgba(255, 23, 68, 0.4),
+                  inset 0 0 10px rgba(255, 23, 68, 0.1);
+    }
+
+    .stream-item.high {
+      border-left-color: var(--high);
+      background: linear-gradient(135deg, rgba(255, 69, 0, 0.08), rgba(255, 69, 0, 0.04));
+    }
+
+    .stream-item.high:hover {
+      background: linear-gradient(135deg, rgba(255, 69, 0, 0.15), rgba(255, 69, 0, 0.08));
+      box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
+    }
+
+    .stream-item.medium {
+      border-left-color: var(--medium);
+      background: linear-gradient(135deg, rgba(255, 179, 0, 0.08), rgba(255, 179, 0, 0.04));
+    }
+
+    .stream-item.medium:hover {
+      background: linear-gradient(135deg, rgba(255, 179, 0, 0.15), rgba(255, 179, 0, 0.08));
+      box-shadow: 0 0 15px rgba(255, 179, 0, 0.3);
+    }
+
+    .stream-icon {
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+      filter: drop-shadow(0 0 3px currentColor);
+    }
+
+    .critical .stream-icon { color: var(--critical); }
+    .high .stream-icon { color: var(--high); }
+    .medium .stream-icon { color: var(--medium); }
+    .low .stream-icon { color: var(--low); }
+
+    .stream-content {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .stream-title {
+      color: var(--text-primary);
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+    }
+
+    .stream-desc {
+      color: var(--accent-cyan);
+      font-size: 9px;
+      opacity: 0.8;
+    }
+
+    .stream-time {
+      color: var(--accent-green);
+      font-size: 8px;
+      margin-top: 3px;
+      text-shadow: 0 0 3px var(--accent-green);
+    }
+
+    /* Event Form */
+    .event-form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-group-full {
+      grid-column: 1 / -1;
+    }
+
+    textarea {
+      background: rgba(0, 255, 65, 0.08);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      padding: 8px 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      border-radius: 0;
+      resize: vertical;
+      min-height: 60px;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+      text-shadow: 0 0 5px var(--accent-green);
+    }
+
+    textarea::placeholder {
+      color: rgba(0, 255, 65, 0.5);
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.5),
+                  inset 0 0 10px rgba(0, 255, 255, 0.2);
+      background: rgba(0, 255, 255, 0.1);
+      color: var(--accent-cyan);
+    }
+
+    /* Layout Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 0;
+      font-size: 11px;
+      border: 1px solid rgba(0, 255, 65, 0.2);
+    }
+
+    .status-label {
+      color: var(--accent-cyan);
+    }
+
+    .status-value {
+      color: var(--accent-green);
+      font-weight: bold;
+      text-shadow: 0 0 5px var(--accent-green);
+    }
+
+    .status-item.off .status-value {
+      color: var(--critical);
+      text-shadow: 0 0 5px var(--critical);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.5);
+      border-left: 1px solid rgba(0, 255, 65, 0.2);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--accent-cyan), var(--accent-green));
+      border-radius: 0;
+      box-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, var(--accent-green), var(--accent-cyan));
+      box-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--accent-cyan);
+    }
+
+    .empty-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* Responsive */
+    @media (max-width: 1400px) {
+      .main-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 1000px) {
+      .main-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .header {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+      .header-stats {
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+      .auth-panel {
+        grid-template-columns: 1fr;
+      }
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      h1 {
+        font-size: 24px;
+      }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .locked {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 12px;
+      background: linear-gradient(135deg, rgba(0, 255, 65, 0.15), rgba(0, 255, 255, 0.1));
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      font-size: 9px;
+      border-radius: 0;
+      text-transform: uppercase;
+      font-weight: bold;
+      box-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
+    }
+
+    /* Glitch effect */
+    @keyframes glitch {
+      0%, 100% {
+        clip-path: inset(0 0 0 0);
+      }
+      20% {
+        clip-path: inset(10% 0 61% 0);
+      }
+      40% {
+        clip-path: inset(32% 0 58% 0);
+      }
+      60% {
+        clip-path: inset(50% 0 6% 0);
+      }
+      80% {
+        clip-path: inset(76% 0 58% 0);
+      }
+    }
+
+    .glitch {
+      animation: glitch 0.3s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-title">
+        <span class="team-name">🔒 Security Operations Center</span>
+        <h1>ATM Command Center</h1>
+      </div>
+      <div class="header-stats">
+        <div class="stat-item">
+          <span class="stat-label">System Status</span>
+          <span class="stat-value" id="sysStatus">ONLINE</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Last Update</span>
+          <span class="stat-value" id="lastUpdate">--:--:--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Risk Level</span>
+          <span class="stat-value" id="riskLevelHeader">LOW</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth Panel -->
+    <div class="panel auth-panel">
+      <div class="auth-info">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-data">
+          <span class="user-name" id="userName">Not Authenticated</span>
+          <span class="user-role" id="userRole">no access</span>
+        </div>
+      </div>
+      <div class="auth-form" id="authForm">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" id="loginUsername" placeholder="admin" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button id="loginBtn" type="button">Login</button>
+        <button id="logoutBtn" class="secondary" type="button">Logout</button>
+      </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="main-grid">
+      <!-- Risk Level Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">⚠️ Risk Level</span>
+        </div>
+        <div class="panel-content">
+          <div id="riskBadge" class="status-badge low">
+            <div class="status-dot"></div>
+            <span>Low Risk</span>
+          </div>
+          <div class="metric-big">
+            <div class="metric-value" id="riskValue">LOW</div>
+            <div class="metric-label">Current Threat Assessment</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Network Status Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">🔗 Network</span>
+        </div>
+        <div class="panel-content">
+          <div id="networkBadge" class="status-badge low">
+            <div class="status-dot"></div>
+            <span>Connected</span>
+          </div>
+          <div class="metric-big">
+            <div class="metric-value" id="networkStatus">ONLINE</div>
+            <div class="metric-label">Connection Status</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PIN Failures Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">🔐 PIN Security</span>
+        </div>
+        <div class="panel-content">
+          <div id="pinBadge" class="status-badge low">
+            <div class="status-dot"></div>
+            <span>Secure</span>
+          </div>
+          <div class="metric-big">
+            <div class="metric-value" id="pinFailures">0</div>
+            <div class="metric-label">Failed Attempts</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerts Count Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">🚨 Alerts</span>
+        </div>
+        <div class="panel-content">
+          <div id="alertsBadge" class="status-badge low">
+            <div class="status-dot"></div>
+            <span>Nominal</span>
+          </div>
+          <div class="metric-big">
+            <div class="metric-value" id="alertCount">0</div>
+            <div class="metric-label">Active Alerts</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Safe Status Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">🔓 Safe Door</span>
+        </div>
+        <div class="panel-content">
+          <div id="safeBadge" class="status-badge low">
+            <div class="status-dot"></div>
+            <span>Closed</span>
+          </div>
+          <div class="metric-big">
+            <div class="metric-value" id="safeStatus">CLOSED</div>
+            <div class="metric-label">Vault Status</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Maintenance Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">🔧 Maintenance</span>
+        </div>
+        <div class="panel-content">
+          <div id="mainBadge" class="status-badge low">
+            <div class="status-dot"></div>
+            <span>Disabled</span>
+          </div>
+          <div class="metric-big">
+            <div class="metric-value" id="mainStatus">OFF</div>
+            <div class="metric-label">Mode Status</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Last Actor Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">👤 Last Card</span>
+        </div>
+        <div class="panel-content">
+          <div class="metric-big">
+            <div class="metric-value" id="lastActor">-</div>
+            <div class="metric-label">Last Actor ID</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="grid-2">
+      <!-- Alerts Stream -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📡 Alert Stream</span>
+          <span style="font-size: 11px; color: var(--text-secondary);">Latest 12 Events</span>
+        </div>
+        <div class="panel-content">
+          <div id="alertsStream" class="stream">
+            <div class="empty-state">
+              <div class="empty-icon">...</div>
+              <p>No alerts yet</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Events Stream -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📋 Event Timeline</span>
+          <span style="font-size: 11px; color: var(--text-secondary);">Recent Activity</span>
+        </div>
+        <div class="panel-content">
+          <div id="eventsStream" class="stream">
+            <div class="empty-state">
+              <div class="empty-icon">...</div>
+              <p>No events logged</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event Simulation Panel -->
+    <div class="panel" style="margin-top: 20px;">
+      <div class="panel-header">
+        <span class="panel-title">⚡ Event Simulator</span>
+        <span style="font-size: 11px; color: var(--text-secondary);" id="formStatus">Ready to submit</span>
+      </div>
+      <div class="panel-content">
+        <form id="eventForm" class="event-form-grid locked">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Event Type</label>
+              <select id="eventType">
+                <option value="card_inserted">Card Inserted</option>
+                <option value="pin_failed">PIN Failed</option>
+                <option value="pin_verified">PIN Verified</option>
+                <option value="safe_door_opened">Safe Door Opened</option>
+                <option value="vibration_detected">Vibration Detected</option>
+                <option value="network_offline">Network Offline</option>
+                <option value="network_online">Network Online</option>
+                <option value="maintenance_mode_enabled">Maintenance Mode</option>
+                <option value="cash_replenished">Cash Replenished</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Actor ID</label>
+              <input type="text" id="actorId" placeholder="e.g., ATM001_OP123">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Value (Optional)</label>
+              <input type="number" id="eventValue" placeholder="e.g., 1500.50">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Details</label>
+              <input type="text" id="eventDetails" placeholder="Additional information">
+            </div>
+          </div>
+          <div class="form-group-full">
+            <button type="submit" id="submitEvent">📤 Submit Event</button>
+          </div>
+        </form>
+        <div class="action-buttons" style="margin-top: 15px;">
+          <button type="button" id="resetEngine" onclick="confirmReset()">🔄 Reset Engine</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let authToken = localStorage.getItem('authToken');
+    let currentUser = null;
+
+    // Update timestamp every second
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+    }, 1000);
+
+    // Periodic data refresh
+    setInterval(refreshDashboard, 2000);
+
+    // Event listeners
+    document.getElementById('loginBtn').addEventListener('click', handleLogin);
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    document.getElementById('eventForm').addEventListener('submit', handleEventSubmit);
+
+    async function handleLogin() {
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+
+      if (!username || !password) {
+        alert('Please enter username and password');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(`Login failed: ${data.detail}`);
+          return;
+        }
+
+        authToken = data.access_token;
+        localStorage.setItem('authToken', authToken);
+        currentUser = {
+          name: data.operator_name,
+          username: data.username,
+          role: data.role,
+          permissions: data.permissions
+        };
+
+        updateAuthUI();
+        enableEventForm();
+      } catch (error) {
+        console.error('Login error:', error);
+        alert('Login error: ' + error.message);
+      }
+    }
+
+    function handleLogout() {
+      authToken = null;
+      currentUser = null;
+      localStorage.removeItem('authToken');
+      updateAuthUI();
+      disableEventForm();
+    }
+
+    function updateAuthUI() {
+      const authForm = document.getElementById('authForm');
+      const userAvatar = document.getElementById('userAvatar');
+      const userName = document.getElementById('userName');
+      const userRole = document.getElementById('userRole');
+      const loginBtn = document.getElementById('loginBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+
+      if (currentUser) {
+        userAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+        userName.textContent = currentUser.name;
+        userRole.textContent = '✓ ' + currentUser.role.toUpperCase();
+        loginBtn.classList.add('hidden');
+        logoutBtn.classList.remove('hidden');
+        document.getElementById('loginUsername').value = '';
+        document.getElementById('loginPassword').value = '';
+      } else {
+        userAvatar.textContent = '?';
+        userName.textContent = 'Not Authenticated';
+        userRole.textContent = 'no access';
+        loginBtn.classList.remove('hidden');
+        logoutBtn.classList.add('hidden');
+      }
+    }
+
+    function enableEventForm() {
+      document.getElementById('eventForm').classList.remove('locked');
+      document.getElementById('submitEvent').disabled = false;
+    }
+
+    function disableEventForm() {
+      document.getElementById('eventForm').classList.add('locked');
+      document.getElementById('submitEvent').disabled = true;
+    }
+
+    async function handleEventSubmit(e) {
+      e.preventDefault();
+
+      if (!authToken) {
+        alert('Please login first');
+        return;
+      }
+
+      const eventType = document.getElementById('eventType').value;
+      const actorId = document.getElementById('actorId').value;
+      const eventValue = document.getElementById('eventValue').value;
+      const eventDetails = document.getElementById('eventDetails').value;
+
+      try {
+        const response = await fetch(`${API_BASE}/events`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            event_type: eventType,
+            actor_id: actorId || null,
+            value: eventValue ? parseFloat(eventValue) : null,
+            details: eventDetails
+          })
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          alert(`Error: ${data.detail}`);
+          return;
+        }
+
+        alert('Event submitted successfully!');
+        document.getElementById('eventForm').reset();
+        refreshDashboard();
+      } catch (error) {
+        console.error('Submit error:', error);
+        alert('Error submitting event: ' + error.message);
+      }
+    }
+
+    async function refreshDashboard() {
+      try {
+        const response = await fetch(`${API_BASE}/snapshot`, {
+          headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+        });
+
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
+
+        const data = await response.json();
+        updateDashboardUI(data);
+      } catch (error) {
+        console.error('Refresh error:', error);
+      }
+    }
+
+    function updateDashboardUI(data) {
+      const state = data.state;
+      const alerts = data.alerts;
+      const events = data.recent_events;
+      const riskLevel = data.risk_level;
+
+      // Risk Level
+      const riskBadge = document.getElementById('riskBadge');
+      riskBadge.className = 'status-badge ' + riskLevel.toLowerCase();
+      document.getElementById('riskValue').textContent = riskLevel;
+      document.getElementById('riskLevelHeader').textContent = riskLevel;
+
+      // Network
+      const networkStatus = state.network_online ? 'ONLINE' : 'OFFLINE';
+      const networkBadge = state.network_online ? 'low' : 'critical';
+      document.getElementById('networkBadge').className = 'status-badge ' + networkBadge;
+      document.getElementById('networkStatus').textContent = networkStatus;
+
+      // PIN Failures
+      const pinStatus = state.pin_failures === 0 ? 'low' : state.pin_failures < 3 ? 'medium' : 'critical';
+      document.getElementById('pinBadge').className = 'status-badge ' + pinStatus;
+      document.getElementById('pinFailures').textContent = state.pin_failures;
+
+      // Alerts
+      const alertBadge = alerts.length === 0 ? 'low' : alerts.length < 3 ? 'medium' : 'critical';
+      document.getElementById('alertsBadge').className = 'status-badge ' + alertBadge;
+      document.getElementById('alertCount').textContent = alerts.length;
+
+      // Safe Status
+      const safeStatus = state.safe_open ? 'OPEN' : 'CLOSED';
+      const safeBadge = state.safe_open ? 'critical' : 'low';
+      document.getElementById('safeBadge').className = 'status-badge ' + safeBadge;
+      document.getElementById('safeStatus').textContent = safeStatus;
+
+      // Maintenance
+      const mainStatus = state.maintenance_mode ? (state.maintenance_authorized ? 'AUTHORIZED' : 'UNAUTHORIZED') : 'OFF';
+      const mainBadge = state.maintenance_mode && !state.maintenance_authorized ? 'critical' : 'low';
+      document.getElementById('mainBadge').className = 'status-badge ' + mainBadge;
+      document.getElementById('mainStatus').textContent = mainStatus;
+
+      // Last Actor
+      document.getElementById('lastActor').textContent = state.last_card_actor || '-';
+
+      // Alerts Stream
+      updateStream(document.getElementById('alertsStream'), alerts, 'alert');
+
+      // Events Stream
+      updateStream(document.getElementById('eventsStream'), events, 'event');
+    }
+
+    function updateStream(container, items, type) {
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">░</div>
+            <p>No ${type}s</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = items.map(item => {
+        const severity = item.severity || item.event_type;
+        const title = item.title || item.event_type;
+        const desc = item.description || item.details || '';
+        const timestamp = new Date(item.timestamp).toLocaleTimeString();
+        const severityClass = item.severity ? item.severity.toLowerCase() : 'low';
+
+        return `
+          <div class="stream-item ${severityClass}">
+            <div class="stream-icon">${getSeverityIcon(severityClass)}</div>
+            <div class="stream-content">
+              <div class="stream-title">${title}</div>
+              <div class="stream-desc">${desc}</div>
+              <div class="stream-time">${timestamp}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getSeverityIcon(severity) {
+      const icons = {
+        'critical': '🔴',
+        'high': '🟠',
+        'medium': '🟡',
+        'low': '🟢'
+      };
+      return icons[severity] || '⚪';
+    }
+
+    function confirmReset() {
+      if (confirm('Are you sure you want to reset the engine? This will clear all state and alerts.')) {
+        resetEngine();
+      }
+    }
+
+    async function resetEngine() {
+      if (!authToken) {
+        alert('Please login first');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/reset`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          alert(`Error: ${data.detail}`);
+          return;
+        }
+
+        alert('Engine reset successfully!');
+        refreshDashboard();
+      } catch (error) {
+        console.error('Reset error:', error);
+        alert('Error resetting engine: ' + error.message);
+      }
+    }
+
+    // Initial load
+    updateAuthUI();
+    if (authToken) {
+      currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (Object.keys(currentUser).length > 0) {
+        enableEventForm();
+      }
+    }
+    refreshDashboard();
+  </script>
+      --panel: rgba(255, 252, 247, 0.9);
+      --line: rgba(19, 42, 19, 0.12);
+      --accent: #275d38;
+      --accent-soft: #d6ead8;
+      --danger: #b42318;
+      --danger-soft: #fce7e5;
+      --warn: #b54708;
+      --warn-soft: #ffefc7;
+      --ok: #027a48;
+      --ok-soft: #d9f5e5;
+      --shadow: 0 18px 45px rgba(27, 44, 31, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(214, 234, 216, 0.9), transparent 35%),
+        linear-gradient(135deg, #f7f2e9 0%, #ede4d3 100%);
+      min-height: 100vh;
+    }
+
+    .shell {
+      width: min(1200px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: 1.5fr 1fr;
+      align-items: stretch;
+      margin-bottom: 20px;
+    }
+
+    .hero-card,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-card {
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding: 18px 22px;
+    }
+
+    .auth-meta {
+      display: grid;
+      gap: 4px;
+    }
+
+    .auth-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .role-chip {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: rgba(39, 93, 56, 0.12);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      top: -60px;
+      right: -40px;
+      background: radial-gradient(circle, rgba(39, 93, 56, 0.2), transparent 70%);
+    }
+
+    .kicker {
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 12px;
+      opacity: 0.72;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      line-height: 0.95;
+      max-width: 10ch;
+    }
+
+    .hero-copy {
+      max-width: 55ch;
+      margin: 0;
+      line-height: 1.6;
+      opacity: 0.88;
+    }
+
+    .hero-status {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-weight: 700;
+      width: fit-content;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+    }
+
+    .status-badge.low,
+    .status-badge.online {
+      background: var(--ok-soft);
+      color: var(--ok);
+    }
+
+    .status-badge.medium,
+    .status-badge.warning {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .status-badge.high,
+    .status-badge.critical,
+    .status-badge.offline {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .status-value {
+      font-size: 3rem;
+      font-weight: 800;
+      margin: 18px 0 8px;
+    }
+
+    .status-note {
+      margin: 0;
+      opacity: 0.75;
+      line-height: 1.6;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .metric {
+      padding: 20px;
+    }
+
+    .metric-label {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 12px;
+      opacity: 0.62;
+      margin-bottom: 10px;
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 0 0 6px;
+    }
+
+    .metric-note {
+      margin: 0;
+      opacity: 0.74;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .subtle {
+      opacity: 0.62;
+      font-size: 0.95rem;
+    }
+
+    .stream,
+    .event-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .item-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 8px;
+    }
+
+    .item-title {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .item-time {
+      opacity: 0.6;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .item-copy {
+      margin: 0;
+      line-height: 1.5;
+      opacity: 0.85;
+    }
+
+    .severity-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .severity-pill.low {
+      background: var(--ok-soft);
+      color: var(--ok);
+    }
+
+    .severity-pill.medium {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .severity-pill.high,
+    .severity-pill.critical {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(19, 42, 19, 0.14);
+      padding: 12px 14px;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    button {
+      background: var(--accent);
+      color: #f7fbf7;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      opacity: 0.96;
+    }
+
+    .secondary {
+      background: rgba(39, 93, 56, 0.12);
+      color: var(--accent);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+    }
+
+    .inline-form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+
+    .inline-form label {
+      min-width: 180px;
+      flex: 1;
+    }
+
+    .locked {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .empty {
+      border: 1px dashed var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      text-align: center;
+      opacity: 0.68;
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      opacity: 0.64;
+      font-size: 0.9rem;
+      text-align: right;
+    }
+
+    @media (max-width: 960px) {
+      .hero,
+      .grid,
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel auth-strip">
+      <div class="auth-meta">
+        <p class="auth-title">Sessao do operador</p>
+        <span id="authStatus" class="subtle">Nenhum operador autenticado.</span>
+        <span id="roleChip" class="role-chip">sem perfil</span>
+      </div>
+      <div class="toolbar">
+        <form id="loginForm" class="inline-form">
+          <label>
+            Usuario
+            <input id="loginUsername" autocomplete="username" placeholder="operator">
+          </label>
+          <label>
+            Senha
+            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="admin123">
+          </label>
+          <button type="submit">Entrar</button>
+        </form>
+        <button id="logoutButton" class="secondary" type="button">Sair</button>
+      </div>
+    </section>
+
+    <section class="hero">
+      <article class="hero-card">
+        <div class="kicker">ATM Security Command</div>
+        <h1>Monitoramento em tempo real</h1>
+        <p class="hero-copy">
+          Painel web para acompanhar o estado do caixa eletronico, responder a alertas
+          criticos e simular eventos operacionais com atualizacao automatica.
+        </p>
+      </article>
+
+      <aside class="hero-card hero-status">
+        <div>
+          <span id="riskBadge" class="status-badge low">Risco baixo</span>
+          <div id="riskValue" class="status-value">LOW</div>
+          <p id="riskNote" class="status-note">
+            Nenhum alerta relevante ativo no momento.
+          </p>
+        </div>
+        <div class="subtle">Atualizacao automatica a cada 2 segundos</div>
+      </aside>
+    </section>
+
+    <section class="metrics">
+      <article class="panel metric">
+        <div class="metric-label">Conexao</div>
+        <p id="networkValue" class="metric-value">Online</p>
+        <p class="metric-note">Link com a central</p>
+      </article>
+      <article class="panel metric">
+        <div class="metric-label">Falhas de PIN</div>
+        <p id="pinFailuresValue" class="metric-value">0</p>
+        <p class="metric-note">Tentativas consecutivas</p>
+      </article>
+      <article class="panel metric">
+        <div class="metric-label">Alertas</div>
+        <p id="alertCountValue" class="metric-value">0</p>
+        <p class="metric-note">Eventos classificados</p>
+      </article>
+      <article class="panel metric">
+        <div class="metric-label">Ultimo cartao</div>
+        <p id="lastActorValue" class="metric-value">-</p>
+        <p class="metric-note">Ultimo ator observado</p>
+      </article>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Fluxo de alertas</h2>
+          <span class="subtle">ultimos 12 registros</span>
+        </div>
+        <div id="alertsList" class="stream"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Simular evento</h2>
+          <span id="formFeedback" class="subtle">Envie um evento para testar o painel</span>
+        </div>
+        <form id="eventForm" class="locked">
+          <div class="field-grid">
+            <label>
+              Tipo de evento
+              <select id="eventType" name="event_type">
+                <option value="card_inserted">card_inserted</option>
+                <option value="pin_failed">pin_failed</option>
+                <option value="pin_verified">pin_verified</option>
+                <option value="safe_door_opened">safe_door_opened</option>
+                <option value="vibration_detected">vibration_detected</option>
+                <option value="network_offline">network_offline</option>
+                <option value="network_online">network_online</option>
+                <option value="maintenance_mode_enabled">maintenance_mode_enabled</option>
+                <option value="cash_replenished">cash_replenished</option>
+              </select>
+            </label>
+
+            <label>
+              Ator
+              <input id="actorId" name="actor_id" placeholder="card-001 ou tech-12">
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              Valor do sensor
+              <input id="eventValue" name="value" type="number" step="0.1" placeholder="9.4">
+            </label>
+
+            <label>
+              Timestamp
+              <input id="eventTimestamp" name="timestamp" type="datetime-local">
+            </label>
+          </div>
+
+          <label>
+            Detalhes
+            <textarea id="eventDetails" name="details" placeholder="Descreva o contexto do evento"></textarea>
+          </label>
+
+          <div class="toolbar">
+            <button type="submit">Enviar evento</button>
+            <button id="resetButton" class="secondary" type="button">Resetar painel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Eventos recentes</h2>
+          <span class="subtle">atividade observada no ATM</span>
+        </div>
+        <div id="eventsList" class="event-list"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Estado operacional</h2>
+          <span class="subtle">visao atual do terminal</span>
+        </div>
+        <div id="stateList" class="event-list"></div>
+      </div>
+
+      <div id="adminPanel" class="panel hidden">
+        <div class="panel-head">
+          <h2 class="panel-title">Gestao de usuarios</h2>
+          <span id="adminFeedback" class="subtle">Disponivel apenas para administradores</span>
+        </div>
+
+        <form id="createUserForm">
+          <div class="field-grid">
+            <label>
+              Username
+              <input id="newUsername" placeholder="novo-operador">
+            </label>
+            <label>
+              Nome
+              <input id="newName" placeholder="Novo Operador">
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              Perfil
+              <select id="newRole">
+                <option value="viewer">viewer</option>
+                <option value="operator">operator</option>
+                <option value="admin">admin</option>
+              </select>
+            </label>
+            <label>
+              Senha inicial
+              <input id="newPassword" type="password" placeholder="senha temporaria">
+            </label>
+          </div>
+
+          <button type="submit">Criar usuario</button>
+        </form>
+
+        <div class="panel-head" style="margin-top: 20px;">
+          <h2 class="panel-title">Operadores cadastrados</h2>
+          <span class="subtle">Edicao rapida em memoria</span>
+        </div>
+        <div id="usersList" class="event-list"></div>
+      </div>
+    </section>
+
+    <div class="footer-note">Dashboard conectado a <code>/snapshot</code> com polling continuo.</div>
+  </div>
+
+  <script>
+    const snapshotUrl = "/snapshot";
+    const eventsUrl = "/events";
+    const resetUrl = "/reset";
+    const loginUrl = "/auth/login";
+    const meUrl = "/auth/me";
+    const usersUrl = "/admin/users";
+    const authStorageKey = "atmSecurityToken";
+
+    const elements = {
+      authStatus: document.getElementById("authStatus"),
+      roleChip: document.getElementById("roleChip"),
+      riskBadge: document.getElementById("riskBadge"),
+      riskValue: document.getElementById("riskValue"),
+      riskNote: document.getElementById("riskNote"),
+      networkValue: document.getElementById("networkValue"),
+      pinFailuresValue: document.getElementById("pinFailuresValue"),
+      alertCountValue: document.getElementById("alertCountValue"),
+      lastActorValue: document.getElementById("lastActorValue"),
+      alertsList: document.getElementById("alertsList"),
+      eventsList: document.getElementById("eventsList"),
+      stateList: document.getElementById("stateList"),
+      formFeedback: document.getElementById("formFeedback"),
+      loginForm: document.getElementById("loginForm"),
+      loginUsername: document.getElementById("loginUsername"),
+      loginPassword: document.getElementById("loginPassword"),
+      logoutButton: document.getElementById("logoutButton"),
+      eventForm: document.getElementById("eventForm"),
+      resetButton: document.getElementById("resetButton"),
+      adminPanel: document.getElementById("adminPanel"),
+      adminFeedback: document.getElementById("adminFeedback"),
+      createUserForm: document.getElementById("createUserForm"),
+      newUsername: document.getElementById("newUsername"),
+      newName: document.getElementById("newName"),
+      newRole: document.getElementById("newRole"),
+      newPassword: document.getElementById("newPassword"),
+      usersList: document.getElementById("usersList"),
+      eventType: document.getElementById("eventType"),
+      actorId: document.getElementById("actorId"),
+      eventValue: document.getElementById("eventValue"),
+      eventTimestamp: document.getElementById("eventTimestamp"),
+      eventDetails: document.getElementById("eventDetails")
+    };
+
+    let authToken = window.localStorage.getItem(authStorageKey);
+    let currentOperator = null;
+
+    const riskNotes = {
+      low: "Nenhum alerta relevante ativo no momento.",
+      medium: "Existe risco moderado e a central deve acompanhar o terminal.",
+      high: "O terminal exige investigacao imediata pela equipe de seguranca.",
+      critical: "Ocorrencia critica. Priorize resposta operacional e bloqueio do ATM."
+    };
+
+    function formatDate(value) {
+      if (!value) return "-";
+      return new Date(value).toLocaleString("pt-BR");
+    }
+
+    function setRisk(riskLevel, online) {
+      const normalized = (riskLevel || "low").toLowerCase();
+      elements.riskBadge.className = `status-badge ${normalized}`;
+      elements.riskBadge.textContent = `Risco ${normalized}`;
+      elements.riskValue.textContent = normalized.toUpperCase();
+      elements.riskNote.textContent = online
+        ? riskNotes[normalized]
+        : "Terminal sem conexao com a central. Trate o monitoramento como degradado.";
+    }
+
+    function renderAlerts(alerts) {
+      if (!alerts.length) {
+        elements.alertsList.innerHTML = '<div class="empty">Nenhum alerta registrado ainda.</div>';
+        return;
+      }
+
+      elements.alertsList.innerHTML = alerts.map((alert) => `
+        <article class="item">
+          <div class="item-head">
+            <div>
+              <div class="severity-pill ${alert.severity}">${alert.severity}</div>
+              <h3 class="item-title">${alert.title}</h3>
+            </div>
+            <div class="item-time">${formatDate(alert.timestamp)}</div>
+          </div>
+          <p class="item-copy">${alert.description}</p>
+        </article>
+      `).join("");
+    }
+
+    function renderEvents(events) {
+      if (!events.length) {
+        elements.eventsList.innerHTML = '<div class="empty">Nenhum evento recente recebido.</div>';
+        return;
+      }
+
+      elements.eventsList.innerHTML = events.map((event) => `
+        <article class="item">
+          <div class="item-head">
+            <h3 class="item-title">${event.event_type}</h3>
+            <div class="item-time">${formatDate(event.timestamp)}</div>
+          </div>
+          <p class="item-copy">
+            Ator: ${event.actor_id || "-"}<br>
+            Valor: ${event.value ?? "-"}<br>
+            Detalhes: ${event.details || "-"}
+          </p>
+        </article>
+      `).join("");
+    }
+
+    function renderState(state) {
+      const rows = [
+        ["Conexao", state.network_online ? "online" : "offline"],
+        ["Modo manutencao", state.maintenance_mode ? "ativo" : "inativo"],
+        ["Manutencao autorizada", state.maintenance_authorized ? "sim" : "nao"],
+        ["Cofre", state.safe_open ? "aberto" : "fechado"],
+        ["Ultimo cartao", state.last_card_actor || "-"]
+      ];
+
+      elements.stateList.innerHTML = rows.map(([label, value]) => `
+        <article class="item">
+          <div class="item-head">
+            <h3 class="item-title">${label}</h3>
+            <div class="severity-pill ${value === "offline" || value === "aberto" ? "critical" : "low"}">${value}</div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderSnapshot(snapshot) {
+      const { state, risk_level: riskLevel, alerts, recent_events: recentEvents } = snapshot;
+      setRisk(riskLevel, state.network_online);
+      elements.networkValue.textContent = state.network_online ? "Online" : "Offline";
+      elements.pinFailuresValue.textContent = String(state.pin_failures);
+      elements.alertCountValue.textContent = String(state.total_alerts);
+      elements.lastActorValue.textContent = state.last_card_actor || "-";
+      renderAlerts(alerts);
+      renderEvents(recentEvents);
+      renderState(state);
+    }
+
+    function setOperatorSession(operator) {
+      currentOperator = operator;
+      const authenticated = Boolean(operator && authToken);
+      const canWriteEvents = authenticated && operator.permissions.includes("events:write");
+      const canResetEngine = authenticated && operator.permissions.includes("engine:reset");
+      const canManageUsers = authenticated && operator.permissions.includes("users:manage");
+
+      elements.eventForm.classList.toggle("locked", !canWriteEvents);
+      elements.resetButton.disabled = !canResetEngine;
+      elements.adminPanel.classList.toggle("hidden", !canManageUsers);
+      elements.logoutButton.disabled = !authenticated;
+      elements.loginUsername.disabled = authenticated;
+      elements.loginPassword.disabled = authenticated;
+
+      if (authenticated) {
+        elements.authStatus.textContent = `Autenticado como ${operator.name} (${operator.username}).`;
+        elements.roleChip.textContent = operator.role;
+
+        if (canWriteEvents && canResetEngine) {
+          elements.formFeedback.textContent = "Perfil administrativo ativo. Controle completo liberado.";
+        } else if (canWriteEvents) {
+          elements.formFeedback.textContent = "Perfil operacional ativo. Envio de eventos liberado.";
+        } else {
+          elements.formFeedback.textContent = "Perfil de monitoramento ativo. Acoes de escrita bloqueadas.";
+        }
+
+        if (canManageUsers) {
+          elements.adminFeedback.textContent = "Administrador autenticado. Gestao de usuarios habilitada.";
+          loadUsers();
+        }
+      } else {
+        elements.authStatus.textContent = "Nenhum operador autenticado.";
+        elements.roleChip.textContent = "sem perfil";
+        elements.formFeedback.textContent = "Faca login para enviar eventos e resetar o motor.";
+        elements.usersList.innerHTML = "";
+        elements.adminFeedback.textContent = "Disponivel apenas para administradores";
+      }
+    }
+
+    function authHeaders() {
+      return authToken ? { Authorization: `Bearer ${authToken}` } : {};
+    }
+
+    async function loadSnapshot() {
+      try {
+        const response = await fetch(snapshotUrl, { cache: "no-store" });
+        if (!response.ok) throw new Error("Falha ao consultar snapshot");
+        const snapshot = await response.json();
+        renderSnapshot(snapshot);
+      } catch (error) {
+        elements.formFeedback.textContent = "Nao foi possivel atualizar o dashboard.";
+      }
+    }
+
+    function renderUsers(operators) {
+      if (!operators.length) {
+        elements.usersList.innerHTML = '<div class="empty">Nenhum operador cadastrado.</div>';
+        return;
+      }
+
+      elements.usersList.innerHTML = operators.map((operator) => `
+        <form class="item user-edit-form" data-username="${operator.username}">
+          <div class="item-head">
+            <div>
+              <h3 class="item-title">${operator.username}</h3>
+              <div class="severity-pill low">${operator.role}</div>
+            </div>
+            <div class="item-time">${operator.permissions.join(", ")}</div>
+          </div>
+          <div class="field-grid">
+            <label>
+              Nome
+              <input name="name" value="${operator.name}">
+            </label>
+            <label>
+              Perfil
+              <select name="role">
+                <option value="viewer" ${operator.role === "viewer" ? "selected" : ""}>viewer</option>
+                <option value="operator" ${operator.role === "operator" ? "selected" : ""}>operator</option>
+                <option value="admin" ${operator.role === "admin" ? "selected" : ""}>admin</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Nova senha
+            <input name="password" type="password" placeholder="Deixe em branco para manter">
+          </label>
+          <button type="submit">Salvar alteracoes</button>
+        </form>
+      `).join("");
+
+      document.querySelectorAll(".user-edit-form").forEach((form) => {
+        form.addEventListener("submit", updateUser);
+      });
+    }
+
+    async function loadUsers() {
+      if (!currentOperator || !currentOperator.permissions.includes("users:manage")) {
+        return;
+      }
+
+      const response = await fetch(usersUrl, {
+        headers: authHeaders(),
+      });
+
+      if (!response.ok) {
+        elements.adminFeedback.textContent = "Falha ao carregar usuarios.";
+        return;
+      }
+
+      const payload = await response.json();
+      renderUsers(payload.operators);
+    }
+
+    async function submitEvent(event) {
+      event.preventDefault();
+
+      if (!authToken) {
+        elements.formFeedback.textContent = "Autenticacao obrigatoria para enviar eventos.";
+        return;
+      }
+
+      const body = {
+        event_type: elements.eventType.value,
+        timestamp: elements.eventTimestamp.value
+          ? new Date(elements.eventTimestamp.value).toISOString()
+          : new Date().toISOString(),
+        actor_id: elements.actorId.value || null,
+        details: elements.eventDetails.value || "",
+      };
+
+      if (elements.eventValue.value !== "") {
+        body.value = Number(elements.eventValue.value);
+      }
+
+      const response = await fetch(eventsUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders()
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearSession("Sessao expirada. Faca login novamente.");
+          return;
+        }
+        if (response.status === 403) {
+          elements.formFeedback.textContent = "Seu perfil nao pode enviar eventos.";
+          return;
+        }
+        elements.formFeedback.textContent = "Falha ao enviar evento.";
+        return;
+      }
+
+      const payload = await response.json();
+      const generated = payload.generated_alerts.length;
+      elements.formFeedback.textContent = generated
+        ? `Evento enviado. ${generated} alerta(s) gerado(s).`
+        : "Evento enviado sem gerar novos alertas.";
+      elements.eventForm.reset();
+      loadSnapshot();
+    }
+
+    async function resetDashboard() {
+      if (!authToken) {
+        elements.formFeedback.textContent = "Autenticacao obrigatoria para resetar o painel.";
+        return;
+      }
+
+      const response = await fetch(resetUrl, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearSession("Sessao expirada. Faca login novamente.");
+          return;
+        }
+        if (response.status === 403) {
+          elements.formFeedback.textContent = "Seu perfil nao pode resetar o motor.";
+          return;
+        }
+        elements.formFeedback.textContent = "Falha ao resetar o painel.";
+        return;
+      }
+
+      elements.formFeedback.textContent = "Estado do motor reiniciado.";
+      loadSnapshot();
+    }
+
+    async function createUser(event) {
+      event.preventDefault();
+
+      const body = {
+        username: elements.newUsername.value.trim(),
+        name: elements.newName.value.trim(),
+        role: elements.newRole.value,
+        password: elements.newPassword.value,
+      };
+
+      const response = await fetch(usersUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders()
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: "Falha ao criar usuario." }));
+        elements.adminFeedback.textContent = error.detail || "Falha ao criar usuario.";
+        return;
+      }
+
+      elements.createUserForm.reset();
+      elements.adminFeedback.textContent = "Usuario criado com sucesso.";
+      loadUsers();
+    }
+
+    async function updateUser(event) {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const username = form.dataset.username;
+      const formData = new FormData(form);
+      const body = {
+        name: formData.get("name"),
+        role: formData.get("role"),
+      };
+
+      const password = formData.get("password");
+      if (password) {
+        body.password = password;
+      }
+
+      const response = await fetch(`${usersUrl}/${username}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders()
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: "Falha ao atualizar usuario." }));
+        elements.adminFeedback.textContent = error.detail || "Falha ao atualizar usuario.";
+        return;
+      }
+
+      elements.adminFeedback.textContent = `Usuario ${username} atualizado com sucesso.`;
+      loadUsers();
+    }
+
+    function clearSession(message) {
+      authToken = null;
+      currentOperator = null;
+      window.localStorage.removeItem(authStorageKey);
+      setOperatorSession(null);
+      if (message) {
+        elements.formFeedback.textContent = message;
+      }
+    }
+
+    async function loadSession() {
+      if (!authToken) {
+        setOperatorSession(null);
+        return;
+      }
+
+      const response = await fetch(meUrl, {
+        headers: authHeaders(),
+      });
+
+      if (!response.ok) {
+        clearSession("Nao foi possivel restaurar a sessao.");
+        return;
+      }
+
+      const operator = await response.json();
+      setOperatorSession(operator);
+    }
+
+    async function loginOperator(event) {
+      event.preventDefault();
+
+      const body = {
+        username: elements.loginUsername.value.trim(),
+        password: elements.loginPassword.value,
+      };
+
+      const response = await fetch(loginUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        elements.formFeedback.textContent = "Login invalido.";
+        return;
+      }
+
+      const payload = await response.json();
+      authToken = payload.access_token;
+      window.localStorage.setItem(authStorageKey, authToken);
+      elements.loginForm.reset();
+      setOperatorSession({
+        username: payload.username,
+        name: payload.operator_name,
+        role: payload.role,
+        permissions: payload.permissions,
+      });
+      loadSnapshot();
+    }
+
+    elements.loginForm.addEventListener("submit", loginOperator);
+    elements.logoutButton.addEventListener("click", () => clearSession("Sessao encerrada."));
+    elements.eventForm.addEventListener("submit", submitEvent);
+    elements.resetButton.addEventListener("click", resetDashboard);
+    elements.createUserForm.addEventListener("submit", createUser);
+
+    loadSession();
+    loadSnapshot();
+    window.setInterval(loadSnapshot, 2000);
+  </script>
+</body>
+</html>
